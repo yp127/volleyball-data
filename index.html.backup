@@ -1,0 +1,366 @@
+bash
+
+cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🏐 배구대회 정보</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --blue:#1a56db; --blue-dark:#0e3fa8; --blue-light:#ebf4ff;
+  --green:#276749; --green-light:#f0fff4;
+  --orange:#d69e2e; --orange-light:#fffff0;
+  --insta:#e1306c; --insta-light:#fff0f5;
+  --gray-100:#f7fafc; --gray-200:#edf2f7; --gray-400:#a0aec0;
+  --gray-600:#718096; --gray-800:#2d3748; --gray-900:#1a202c;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body { font-family:'Noto Sans KR',sans-serif; background:#f0f4f8; color:var(--gray-900); }
+
+/* 헤더 */
+header { background:linear-gradient(135deg,var(--blue),var(--blue-dark)); color:white; padding:14px 16px; position:sticky; top:0; z-index:10; box-shadow:0 2px 8px rgba(0,0,0,0.2); }
+.h-inner { max-width:720px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; }
+.h-title { font-size:17px; font-weight:700; }
+.h-meta { font-size:11px; opacity:0.8; text-align:right; }
+
+/* 탭 */
+.tabs { background:white; border-bottom:2px solid var(--gray-200); position:sticky; top:49px; z-index:9; }
+.tabs-inner { max-width:720px; margin:0 auto; display:flex; }
+.tab { flex:1; padding:12px 8px; text-align:center; font-size:13px; font-weight:600; color:var(--gray-600); cursor:pointer; border-bottom:3px solid transparent; transition:all 0.15s; }
+.tab.active.results { color:var(--blue); border-color:var(--blue); }
+.tab.active.schedule { color:var(--green); border-color:var(--green); }
+.tab.active.insta { color:var(--insta); border-color:var(--insta); }
+
+/* 검색 */
+.toolbar { background:white; border-bottom:1px solid var(--gray-200); }
+.t-inner { max-width:720px; margin:0 auto; padding:10px 16px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.search { flex:1; min-width:140px; padding:9px 14px; border:1.5px solid var(--gray-200); border-radius:10px; font-size:14px; font-family:inherit; outline:none; }
+.search:focus { border-color:var(--blue); }
+.filter-btns { display:flex; gap:4px; flex-wrap:wrap; }
+.fbtn { padding:6px 10px; border-radius:8px; border:1.5px solid var(--gray-200); background:white; font-size:12px; font-weight:600; cursor:pointer; color:var(--gray-600); font-family:inherit; white-space:nowrap; }
+.fbtn.active { background:var(--blue); color:white; border-color:var(--blue); }
+
+.stats { max-width:720px; margin:0 auto; padding:8px 16px; font-size:12px; color:var(--gray-600); display:flex; justify-content:space-between; }
+.new-badge { background:#fed7d7; color:#c53030; font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; }
+
+/* 카드 */
+.list { max-width:720px; margin:0 auto; padding:6px 16px 40px; display:flex; flex-direction:column; gap:8px; }
+.card { background:white; border-radius:12px; padding:13px 15px; box-shadow:0 1px 3px rgba(0,0,0,0.06); cursor:pointer; border-left:4px solid var(--blue); position:relative; }
+.card.notice { border-left-color:var(--green); }
+.card.insta-card { border-left-color:var(--insta); }
+.card.schedule-card { border-left-color:var(--green); cursor:default; }
+.card.done { opacity:0.5; }
+.card.now { border-left-color:var(--orange); background:var(--orange-light); }
+.new-dot { position:absolute; top:10px; right:12px; width:8px; height:8px; background:#e53e3e; border-radius:50%; }
+.card-title { font-size:14px; font-weight:600; margin-bottom:7px; line-height:1.5; padding-right:16px; }
+.card-meta { display:flex; flex-wrap:wrap; gap:5px; align-items:center; font-size:12px; color:var(--gray-600); }
+.badge { font-size:11px; padding:2px 8px; border-radius:20px; font-weight:600; background:var(--blue-light); color:var(--blue); }
+.badge.g { background:var(--green-light); color:var(--green); }
+.badge.i { background:var(--insta-light); color:var(--insta); }
+.badge.o { background:var(--orange-light); color:var(--orange); }
+.tag { margin-left:auto; font-size:11px; font-weight:600; }
+.tag.ok { color:#38a169; } .tag.no { color:var(--gray-400); }
+
+/* 모달 */
+.overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:100; }
+.modal { display:none; position:fixed; bottom:0; left:0; right:0; max-height:90vh; background:white; border-radius:20px 20px 0 0; overflow-y:auto; z-index:101; }
+.mh { position:sticky; top:0; background:white; padding:14px 16px 12px; border-bottom:1px solid var(--gray-200); }
+.drag { width:36px; height:4px; background:var(--gray-200); border-radius:2px; margin:0 auto 12px; }
+.mt { display:flex; justify-content:space-between; align-items:flex-start; }
+.mt-title { font-size:15px; font-weight:700; line-height:1.4; flex:1; margin-right:10px; }
+.close-btn { background:var(--gray-100); border:none; padding:6px 10px; border-radius:8px; font-size:12px; color:var(--gray-600); cursor:pointer; font-family:inherit; }
+.mm { margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; font-size:12px; color:var(--gray-600); }
+.mb { padding:16px; }
+.mc { font-size:14px; line-height:1.9; color:var(--gray-800); white-space:pre-wrap; word-break:break-word; background:var(--gray-100); border-radius:10px; padding:14px; }
+.nc { text-align:center; color:var(--gray-400); font-size:13px; padding:24px; background:var(--gray-100); border-radius:10px; }
+.mlink { display:block; margin-top:14px; padding:13px; background:var(--blue-light); color:var(--blue); border-radius:10px; text-align:center; font-size:13px; font-weight:600; text-decoration:none; }
+.mlink.i { background:var(--insta-light); color:var(--insta); }
+
+/* 일정 */
+.month-group { margin-bottom:16px; }
+.month-label { font-size:13px; font-weight:700; color:var(--green); padding:6px 0 8px; border-bottom:2px solid var(--green-light); margin-bottom:8px; }
+
+.loading,.empty { text-align:center; padding:60px 20px; color:var(--gray-400); font-size:14px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="h-inner">
+    <div class="h-title">🏐 배구대회 정보</div>
+    <div class="h-meta" id="hMeta">로딩 중...</div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tabs-inner">
+    <div class="tab active results" onclick="switchTab('results',this)">🏆 대회결과</div>
+    <div class="tab schedule" onclick="switchTab('schedule',this)">📅 대회일정</div>
+    <div class="tab insta" onclick="switchTab('insta',this)">📸 인스타</div>
+  </div>
+</div>
+
+<div class="toolbar" id="toolbar">
+  <div class="t-inner">
+    <input class="search" type="text" id="searchInput" placeholder="검색..." oninput="render()"/>
+    <div class="filter-btns" id="filterBtns">
+      <button class="fbtn active" onclick="setFilter('all',this)">전체</button>
+      <button class="fbtn" onclick="setFilter('결과',this)">결과</button>
+      <button class="fbtn" onclick="setFilter('공지',this)">공지</button>
+    </div>
+  </div>
+</div>
+
+<div class="stats" id="stats"></div>
+<div class="list" id="list"><div class="loading">⏳ 데이터 불러오는 중...</div></div>
+
+<div class="overlay" id="overlay" onclick="closeModal()"></div>
+<div class="modal" id="modal">
+  <div class="mh">
+    <div class="drag"></div>
+    <div class="mt">
+      <div class="mt-title" id="mTitle"></div>
+      <button class="close-btn" onclick="closeModal()">✕ 닫기</button>
+    </div>
+    <div class="mm" id="mMeta"></div>
+  </div>
+  <div class="mb">
+    <div id="mContent"></div>
+    <a class="mlink" id="mLink" href="#" target="_blank">📄 원문 보기</a>
+  </div>
+</div>
+
+<script>
+var BASE = "https://yp127.github.io/volleyball-data/data/";
+var currentTab    = "results";
+var currentFilter = "all";
+var currentMonth  = "전체";
+var nowMonth      = new Date().getMonth() + 1;
+
+var DATA = { results:[], schedule:[], insta:[] };
+var loaded = {};
+
+function parseCSV(text) {
+  var lines=text.trim().split("\n"), headers=null, result=[];
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(line.charAt(0)==='"'&&line.charAt(line.length-1)==='"') line=line.slice(1,-1);
+    line=line.split('""').join('\x00');
+    var cols=[],cur="",inQ=false;
+    for(var j=0;j<line.length;j++){
+      var c=line.charAt(j);
+      if(c==='"'){inQ=!inQ;}
+      else if(c===','&&!inQ){cols.push(cur.split('\x00').join('"'));cur="";}
+      else{cur+=c;}
+    }
+    cols.push(cur.split('\x00').join('"'));
+    if(!headers){headers=cols.map(function(h){return h.replace(/^\uFEFF/,"").trim();});}
+    else{var obj={};headers.forEach(function(h,k){obj[h]=(cols[k]||"").trim();});result.push(obj);}
+  }
+  return result;
+}
+
+function loadData(tab, cb) {
+  if(loaded[tab]){cb();return;}
+  var files = {results:"cafe_results.csv", schedule:"cafe_schedule.csv", insta:"insta_results.csv"};
+  fetch(BASE + files[tab] + "?t=" + Date.now())
+    .then(function(r){return r.text();})
+    .then(function(text){
+      if(tab==="results"||tab==="insta") DATA[tab]=parseCSV(text).reverse();
+      else DATA[tab]=parseCSV(text);
+      loaded[tab]=true;
+      cb();
+    })
+    .catch(function(){
+      document.getElementById("list").innerHTML='<div class="empty">데이터 없음 (아직 크롤링 전)</div>';
+    });
+}
+
+// 메타 로드
+fetch(BASE+"meta.json?t="+Date.now())
+  .then(function(r){return r.json();})
+  .then(function(m){
+    document.getElementById("hMeta").innerHTML=
+      "최종: "+m.last_updated+"<br>신규: "+m.new_count+"건";
+  }).catch(function(){
+    document.getElementById("hMeta").textContent="";
+  });
+
+// 초기 로드
+loadData("results", function(){render();});
+
+function switchTab(tab, el) {
+  currentTab=tab;
+  currentFilter="all";
+  currentMonth="전체";
+  document.querySelectorAll(".tab").forEach(function(t){t.classList.remove("active");});
+  el.classList.add("active");
+  document.getElementById("searchInput").value="";
+
+  var fb=document.getElementById("filterBtns");
+  if(tab==="results"){
+    fb.innerHTML='<button class="fbtn active" onclick="setFilter(\'all\',this)">전체</button>'
+      +'<button class="fbtn" onclick="setFilter(\'결과\',this)">결과</button>'
+      +'<button class="fbtn" onclick="setFilter(\'공지\',this)">공지</button>';
+  } else if(tab==="schedule"){
+    fb.innerHTML='';
+  } else {
+    fb.innerHTML='';
+  }
+
+  document.getElementById("list").innerHTML='<div class="loading">⏳ 불러오는 중...</div>';
+  loadData(tab, function(){render();});
+}
+
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll(".fbtn").forEach(function(b){b.classList.remove("active");});
+  btn.classList.add("active");
+  render();
+}
+
+function setMonth(m,btn){
+  currentMonth=m;
+  document.querySelectorAll(".mbtn").forEach(function(b){b.classList.remove("active");});
+  btn.classList.add("active");
+  render();
+}
+
+function render(){
+  if(currentTab==="results") renderResults();
+  else if(currentTab==="schedule") renderSchedule();
+  else renderInsta();
+}
+
+function renderResults(){
+  var q=document.getElementById("searchInput").value.toLowerCase();
+  var data=DATA.results.slice();
+  if(currentFilter==="결과") data=data.filter(function(d){return (d["게시판"]||"").indexOf("결과")>=0;});
+  if(currentFilter==="공지") data=data.filter(function(d){return (d["게시판"]||"").indexOf("결과")<0;});
+  if(q) data=data.filter(function(d){return (d["제목"]||"").toLowerCase().indexOf(q)>=0||(d["본문"]||"").toLowerCase().indexOf(q)>=0;});
+
+  var newCount=data.filter(function(d){return d["신규"]==="Y";}).length;
+  document.getElementById("stats").innerHTML=
+    '<span>'+data.length+'개</span>'+(newCount?'<span class="new-badge">★ 신규 '+newCount+'건</span>':'');
+
+  if(!data.length){document.getElementById("list").innerHTML='<div class="empty">검색 결과 없음</div>';return;}
+  document.getElementById("list").innerHTML=data.map(function(d){
+    var isR=(d["게시판"]||"").indexOf("결과")>=0;
+    var hasC=(d["본문"]||"").trim().length>10;
+    var isNew=d["신규"]==="Y";
+    var idx=DATA.results.indexOf(d);
+    return '<div class="card'+(isR?'':' notice')+'" onclick="openModal(\'results\','+idx+')">'
+      +(isNew?'<div class="new-dot"></div>':'')
+      +'<div class="card-title">'+(d["제목"]||"")+'</div>'
+      +'<div class="card-meta">'
+      +'<span class="badge'+(isR?'':' g')+'">'+(d["게시판"]||"")+'</span>'
+      +'<span>📅 '+(d["작성일"]||"")+'</span>'
+      +'<span>👁 '+Number(d["조회수"]||0).toLocaleString()+'</span>'
+      +'<span class="tag '+(hasC?'ok':'no')+'">'+(hasC?'✅ 결과있음':'📎 첨부/없음')+'</span>'
+      +'</div></div>';
+  }).join("");
+}
+
+function renderSchedule(){
+  var q=document.getElementById("searchInput").value.toLowerCase();
+  var data=DATA.schedule.slice();
+  if(currentMonth!=="전체") data=data.filter(function(d){return d["월"]===currentMonth+"월";});
+  if(q) data=data.filter(function(d){return (d["대회명"]||"").toLowerCase().indexOf(q)>=0||(d["장소"]||"").toLowerCase().indexOf(q)>=0;});
+
+  // 월 버튼 생성
+  var months=["전체"];
+  var seen={};
+  DATA.schedule.forEach(function(d){var m=parseInt((d["월"]||"").replace("월",""));if(m&&!seen[m]){seen[m]=1;months.push(m);}});
+  months.sort(function(a,b){if(a==="전체")return -1;if(b==="전체")return 1;return a-b;});
+  document.getElementById("filterBtns").innerHTML=months.map(function(m){
+    var isCur=(m==="전체"?currentMonth==="전체":m===currentMonth);
+    return '<button class="fbtn mbtn'+(isCur?' active':'')+'" onclick="setMonth('+(m==="전체"?'"전체"':m)+',this)">'+(m==="전체"?"전체":m+"월")+'</button>';
+  }).join("");
+
+  document.getElementById("stats").innerHTML='<span>'+data.length+'개 대회</span>';
+
+  if(!data.length){document.getElementById("list").innerHTML='<div class="empty">검색 결과 없음</div>';return;}
+
+  var groups={};
+  data.forEach(function(d){var m=d["월"]||"";if(!groups[m])groups[m]=[];groups[m].push(d);});
+  var monthOrder=Object.keys(groups).sort(function(a,b){return parseInt(a)-parseInt(b);});
+
+  var html="";
+  monthOrder.forEach(function(m){
+    var mn=parseInt(m);
+    var st=mn<nowMonth?"done":mn===nowMonth?"now":"";
+    var stText=mn<nowMonth?"종료":mn===nowMonth?"★이번달":(mn-nowMonth)+"개월후";
+    html+='<div class="month-group"><div class="month-label">'+m+' <span style="font-size:11px;font-weight:400;color:var(--gray-400)">('+groups[m].length+'개)</span></div>';
+    groups[m].forEach(function(d){
+      html+='<div class="card schedule-card '+st+'">'
+        +'<div class="card-title">'+(d["대회명"]||"")+'</div>'
+        +'<div class="card-meta">'
+        +'<span class="badge g">📅 '+m+' '+(d["기간"]||"")+'</span>'
+        +'<span>📍 '+(d["장소"]||"")+'</span>'
+        +'<span class="tag '+(st==="done"?"no":st==="now"?"ok":"")+'" style="margin-left:auto">'+stText+'</span>'
+        +'</div></div>';
+    });
+    html+='</div>';
+  });
+  document.getElementById("list").innerHTML=html;
+}
+
+function renderInsta(){
+  var q=document.getElementById("searchInput").value.toLowerCase();
+  var data=DATA.insta.slice();
+  if(q) data=data.filter(function(d){return (d["본문"]||"").toLowerCase().indexOf(q)>=0||(d["해시태그"]||"").toLowerCase().indexOf(q)>=0;});
+
+  var newCount=data.filter(function(d){return d["신규"]==="Y";}).length;
+  document.getElementById("stats").innerHTML=
+    '<span>'+data.length+'개</span>'+(newCount?'<span class="new-badge">★ 신규 '+newCount+'건</span>':'');
+
+  if(!data.length){document.getElementById("list").innerHTML='<div class="empty">인스타 데이터 없음</div>';return;}
+  document.getElementById("list").innerHTML=data.map(function(d){
+    var isNew=d["신규"]==="Y";
+    var idx=DATA.insta.indexOf(d);
+    var preview=(d["본문"]||"").replace(/\n/g," ").substring(0,60);
+    return '<div class="card insta-card" onclick="openModal(\'insta\','+idx+')">'
+      +(isNew?'<div class="new-dot"></div>':'')
+      +'<div class="card-title">'+preview+(preview.length>=60?"...":"")+'</div>'
+      +'<div class="card-meta">'
+      +'<span class="badge i">'+(d["해시태그"]||"")+'</span>'
+      +'<span>📅 '+(d["작성일"]||"")+'</span>'
+      +'<span>❤ '+Number(d["좋아요"]||0).toLocaleString()+'</span>'
+      +'</div></div>';
+  }).join("");
+}
+
+function openModal(type,i){
+  var d=DATA[type][i];
+  var isInsta=(type==="insta");
+  document.getElementById("mTitle").textContent=isInsta?(d["해시태그"]||"인스타 게시물"):d["제목"]||"";
+  var isR=!isInsta&&(d["게시판"]||"").indexOf("결과")>=0;
+  document.getElementById("mMeta").innerHTML=
+    (isInsta
+      ?'<span class="badge i">'+(d["해시태그"]||"")+'</span><span>📅 '+(d["작성일"]||"")+'</span><span>❤ '+(d["좋아요"]||0)+'</span>'
+      :'<span class="badge'+(isR?'':' g')+'">'+(d["게시판"]||"")+'</span><span>📅 '+(d["작성일"]||"")+'</span><span>👁 '+Number(d["조회수"]||0).toLocaleString()+'회</span>'
+    );
+  var link=document.getElementById("mLink");
+  link.href=d["URL"]||"#";
+  link.className="mlink"+(isInsta?" i":"");
+  link.textContent=isInsta?"📸 인스타그램에서 보기":"📄 원문 보기 (다음 카페)";
+  var content=(d["본문"]||"").trim();
+  document.getElementById("mContent").innerHTML=content
+    ?'<div class="mc">'+content+'</div>'
+    :'<div class="nc">📎 본문 없음</div>';
+  document.getElementById("overlay").style.display="block";
+  document.getElementById("modal").style.display="block";
+  document.getElementById("modal").scrollTop=0;
+}
+function closeModal(){
+  document.getElementById("overlay").style.display="none";
+  document.getElementById("modal").style.display="none";
+}
+</script>
+</body>
+</html>
+HTMLEOF
+ 
