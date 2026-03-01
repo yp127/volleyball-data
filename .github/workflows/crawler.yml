@@ -28,4 +28,5 @@ jobs:
           git config user.email "actions@github.com"
           git add cafe_results.csv cafe_schedule.csv changelog.json meta.json last_ids.json || true
           git diff --staged --quiet || git commit -m "auto update $(date '+%Y-%m-%d %H:%M')"
-          git push
+          git pull --rebase origin main
+          git push origin main
