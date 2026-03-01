@@ -1,0 +1,31 @@
+name: Daily Volleyball Crawler
+on:
+  schedule:
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 instaloader
+      - name: Run crawler
+        env:
+          INSTA_PASSWORD: ${{ secrets.INSTA_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 cafe_crawler.py
+      - name: Commit and push results
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add cafe_results.csv cafe_schedule.csv changelog.json meta.json last_ids.json || true
+          git diff --staged --quiet || git commit -m "auto update $(date '+%Y-%m-%d %H:%M')"
+          git push
