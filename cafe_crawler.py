@@ -10,6 +10,7 @@ import requests
 from bs4 import BeautifulSoup
 import csv, time, re, json, os, base64
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 try:
     import instaloader
@@ -60,7 +61,7 @@ def clean_text(text):
     return re.sub(r"\s+", " ", text).strip()
 
 def now_str():
-    return datetime.now().strftime("%Y-%m-%d %H:%M")
+    return datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d %H:%M")
 
 def load_last_ids():
     if os.path.exists(LAST_IDS_FILE):
